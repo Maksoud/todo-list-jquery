@@ -10,7 +10,6 @@ body {
   min-height: 100vh;
 }
 
-
 .container {
   max-width: 800px;
   margin: auto;
@@ -27,8 +26,13 @@ body {
   font-size: 18px;
 }
 
+.txtb::placeholder {
+  color: black;
+}
+
 h3 {
   margin: 10px 0;
+  color: #eee;
 }
 
 .task {
