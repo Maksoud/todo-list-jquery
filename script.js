@@ -54,31 +54,31 @@ $(document).ready(function() {
 function endTaskFunc (event) {
     
     // This task
-    let self = $(event.target).parent();
+    let task = $(event.target).parent();
         
     //******************//
     
-    self.fadeOut( () => {
+    task.fadeOut( () => {
         
         // Add concluded task in the list
-        addConcludedTask(self);
+        addConcludedTask(task);
         
         //******************//
         
         // Fade it
-        self.fadeIn();
+        task.fadeIn();
         
     });
         
     //******************//
     
     // Update data in Local Storage
-    updateLS([self.text(), true]);
+    updateLS([task.text(), true]);
         
     //******************//
     
     // Remove task from pending list
-    self.remove();
+    task.remove();
     
 }// endTask
 
@@ -87,7 +87,7 @@ function endTaskFunc (event) {
 function undoTaskFunc (event) {
     
     // This task
-    let self = $(event.target).parent();
+    let task = $(event.target).parent();
     
     GLOBAL.editTask  = $("<i class='editTask fas fa-edit' title='Edit task'></i>");
     GLOBAL.undoTask  = $("<i class='undoTask fas fa-undo' title='Put it back in the uncompleted tasks'></i>");
@@ -96,7 +96,7 @@ function undoTaskFunc (event) {
         
     //******************//
     
-    self.fadeOut( () => {
+    task.fadeOut( () => {
         
         const newTask = $("<div>").addClass("task");
         
@@ -122,7 +122,7 @@ function undoTaskFunc (event) {
         
         // Create task element
         $(newTask).append(
-            self.text(), 
+            task.text(), 
             $(GLOBAL.endTask),
             $(GLOBAL.editTask),
             $(GLOBAL.delTask)
@@ -138,19 +138,19 @@ function undoTaskFunc (event) {
         //******************//
         
         // Fade it
-        self.fadeIn();
+        task.fadeIn();
         
     });
      
     //******************//
     
     // Update data in Local Storage
-    updateLS([self.text(), false]);
+    updateLS([task.text(), false]);
         
     //******************//
     
     // Remove task from pending list
-    self.remove();
+    task.remove();
     
 }// undoTaskFunc
 
@@ -158,16 +158,16 @@ function undoTaskFunc (event) {
 
 function editTaskFunc (event) {
     
-    let self = $(event.target).parent();
+    let task = $(event.target).parent();
         
     //******************//
             
     // Remove buttons
-    self.find("i").remove();
+    task.find("i").remove();
         
     //******************//
     
-    let text = $(self).text();
+    let text = $(task).text();
         
     //******************//
     
@@ -177,13 +177,13 @@ function editTaskFunc (event) {
     //******************//
     
     // Remove item from Local Storage
-    removeLS([self.text()]);
+    removeLS([task.text()]);
         
     //******************//
     
     // Remove item
-    self.fadeOut( () => {
-        self.remove();
+    task.fadeOut( () => {
+        task.remove();
     });
     
 }// editTaskFunc
@@ -192,17 +192,17 @@ function editTaskFunc (event) {
 
 function delTaskFunc (event) {
     
-    let self = $(event.target).parent();
+    let task = $(event.target).parent();
         
     //******************//
     
     // Remove item from Local Storage
-    removeLS([self.text()]);
+    removeLS([task.text()]);
         
     //******************//
         
-    self.fadeOut( () => {
-        self.remove();
+    task.fadeOut( () => {
+        task.remove();
     });
     
 }// delTaskFunc
