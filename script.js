@@ -1,409 +1,180 @@
-let GLOBAL = {};
+// To Do List com jQuery
+// As tarefas ficam num array e a tela é redesenhada a partir dele (função render).
 
-const txtb        = null;
-const pending     = null;
-const concluded   = null;
-const editTask    = null;
-const undoTask    = null;
-const delTask     = null;
-const endTask     = null;
+const CHAVE_STORAGE = "toDoItems";
 
-$(document).ready(function() {
-    
-    GLOBAL.txtb      = $("<input>").attr("type", "text").attr("placeholder", "Descreva a tarefa...").addClass("txtb");
-    GLOBAL.pending   = $("<div>").addClass("notcomp");
-    GLOBAL.concluded = $("<div>").addClass("comp");
-    
-    //******************//
-    
-    $("body").html("").append(
-        $(GLOBAL.txtb).keyup( (e) => {
-            addTask(e);
-        }),
-        $(GLOBAL.pending).append(
-            $("<h3>").text("Tarefas Pendentes")
-        ),
-        $(GLOBAL.concluded).append(
-            $("<h3>").text("Tarefas Concluídas")
-        )
-    );
-    
-    //******************//
-    
-    let items = getLS();
-    
-    if (items.length > 0) {
-        
-        items.forEach((item) => {
-            
-            // Is it concluded?
-            if (!item[1]) {
-                addTask(null, item);
-            } else {
-                addConcludedTask(item);
-            }
-            
-        });
-        
-    }// if (items)
-    
+// Cada tarefa: { id, texto, concluida }
+let tarefas = [];
+
+$(function () {
+    tarefas = carregarTarefas();
+    render();
+
+    // Adicionar tarefa (Enter no campo ou clique no botão)
+    $("#form-tarefa").on("submit", function (e) {
+        e.preventDefault();
+
+        const campo = $("#nova-tarefa");
+        const texto = $.trim(campo.val());
+
+        if (texto === "") {
+            mostrarAviso("Digite uma descrição para a tarefa.");
+            campo.trigger("focus");
+            return;
+        }
+
+        tarefas.push({ id: Date.now(), texto: texto, concluida: false });
+        salvarTarefas();
+        render();
+
+        campo.val("").trigger("focus");
+        mostrarAviso("");
+
+        // Destaque rápido na tarefa recém-criada
+        $("#lista-pendentes li").last().hide().fadeIn(250);
+    });
+
+    // Ações dos botões de cada tarefa (delegação de eventos)
+    $(".tarefas").on("click", "button[data-acao]", function () {
+        const item = $(this).closest("li");
+        const id = item.data("id");
+        const acao = $(this).data("acao");
+
+        if (acao === "alternar") alternarTarefa(id);
+        if (acao === "editar") editarTarefa(item);
+        if (acao === "remover") removerTarefa(item, id);
+    });
 });
 
-//******************//
+// ------------------------------------------------------------------
+// Ações
 
-function endTaskFunc (event) {
-    
-    // This task
-    let task = $(event.target).parent();
-        
-    //******************//
-    
-    task.fadeOut( () => {
-        
-        // Add concluded task in the list
-        addConcludedTask(task);
-        
-        //******************//
-        
-        // Fade it
-        task.fadeIn();
-        
+function alternarTarefa(id) {
+    const tarefa = buscarTarefa(id);
+    tarefa.concluida = !tarefa.concluida;
+    salvarTarefas();
+    render();
+
+    // Mantém o foco no botão da tarefa movida, para quem usa o teclado
+    $(`li[data-id="${id}"] button[data-acao="alternar"]`).trigger("focus");
+}
+
+function removerTarefa(item, id) {
+    item.fadeOut(200, function () {
+        tarefas = tarefas.filter((t) => t.id !== id);
+        salvarTarefas();
+        render();
+        $("#nova-tarefa").trigger("focus");
     });
-        
-    //******************//
-    
-    // Update data in Local Storage
-    updateLS([task.text(), true]);
-        
-    //******************//
-    
-    // Remove task from pending list
-    task.remove();
-    
-}// endTask
+}
 
-//******************//
+// Troca o texto por um campo de edição. Enter salva, Esc cancela.
+function editarTarefa(item) {
+    const tarefa = buscarTarefa(item.data("id"));
 
-function undoTaskFunc (event) {
-    
-    // This task
-    let task = $(event.target).parent();
-    
-    GLOBAL.editTask  = $("<i class='editTask fas fa-edit' title='Edit task'></i>");
-    GLOBAL.undoTask  = $("<i class='undoTask fas fa-undo' title='Put it back in the uncompleted tasks'></i>");
-    GLOBAL.delTask   = $("<i class='delTask fas fa-trash-alt' title='Delete task'></i>");
-    GLOBAL.endTask   = $("<i class='endTask fas fa-check' title='Finish task'></i>");
-        
-    //******************//
-    
-    task.fadeOut( () => {
-        
-        const newTask = $("<div>").addClass("task");
-        
-        //******************//
-        
-        $(GLOBAL.endTask).click( (ev) => {
-            endTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        $(GLOBAL.editTask).click( (ev) => {
-            editTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        $(GLOBAL.delTask).click( (ev) => {
-            delTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        // Create task element
-        $(newTask).append(
-            task.text(), 
-            $(GLOBAL.endTask),
-            $(GLOBAL.editTask),
-            $(GLOBAL.delTask)
-        );
-        
-        //******************//
-        
-        // Insert content in completed tasks
-        $(GLOBAL.pending).append(
-            $(newTask)
-        );
-        
-        //******************//
-        
-        // Fade it
-        task.fadeIn();
-        
+    const campo = $("<input>")
+        .attr({ type: "text", maxlength: 200, "aria-label": "Editar tarefa" })
+        .addClass("campo-edicao")
+        .val(tarefa.texto);
+
+    item.find(".texto").replaceWith(campo);
+    item.find(".acoes").hide();
+    campo.trigger("focus").trigger("select");
+
+    let terminou = false;
+
+    function terminar(salvar) {
+        if (terminou) return;
+        terminou = true;
+
+        const novoTexto = $.trim(campo.val());
+        if (salvar && novoTexto !== "") {
+            tarefa.texto = novoTexto;
+            salvarTarefas();
+        }
+        render();
+        $(`li[data-id="${tarefa.id}"] button[data-acao="editar"]`).trigger("focus");
+    }
+
+    campo.on("keydown", function (e) {
+        if (e.key === "Enter") terminar(true);
+        if (e.key === "Escape") terminar(false);
     });
-     
-    //******************//
-    
-    // Update data in Local Storage
-    updateLS([task.text(), false]);
-        
-    //******************//
-    
-    // Remove task from pending list
-    task.remove();
-    
-}// undoTaskFunc
+    campo.on("blur", () => terminar(true));
+}
 
-//******************//
+// ------------------------------------------------------------------
+// Tela
 
-function editTaskFunc (event) {
-    
-    let task = $(event.target).parent();
-        
-    //******************//
-            
-    // Remove buttons
-    task.find("i").remove();
-        
-    //******************//
-    
-    let text = $(task).text();
-        
-    //******************//
-    
-    // Add text to input
-    $(GLOBAL.txtb).val(text);
-        
-    //******************//
-    
-    // Remove item from Local Storage
-    removeLS([task.text()]);
-        
-    //******************//
-    
-    // Remove item
-    task.fadeOut( () => {
-        task.remove();
-    });
-    
-}// editTaskFunc
+function render() {
+    const pendentes = tarefas.filter((t) => !t.concluida);
+    const concluidas = tarefas.filter((t) => t.concluida);
 
-//******************//
+    $("#lista-pendentes").empty().append(pendentes.map(criarItem));
+    $("#lista-concluidas").empty().append(concluidas.map(criarItem));
 
-function delTaskFunc (event) {
-    
-    let task = $(event.target).parent();
-        
-    //******************//
-    
-    // Remove item from Local Storage
-    removeLS([task.text()]);
-        
-    //******************//
-        
-    task.fadeOut( () => {
-        task.remove();
-    });
-    
-}// delTaskFunc
+    $("#contador-pendentes").text(pendentes.length);
+    $("#contador-concluidas").text(concluidas.length);
 
-//******************//
+    // Estados vazios
+    $("#vazio-pendentes").toggle(pendentes.length === 0);
+    $("#vazio-concluidas").toggle(concluidas.length === 0);
+}
 
-function addConcludedTask (toDoItem) {
-    
-    let newTask = null;
-    
-    GLOBAL.editTask  = $("<i class='editTask fas fa-edit' title='Edit task'></i>");
-    GLOBAL.undoTask  = $("<i class='undoTask fas fa-undo' title='Put it back in the uncompleted tasks'></i>");
-    GLOBAL.delTask   = $("<i class='delTask fas fa-trash-alt' title='Delete task'></i>");
-    GLOBAL.endTask   = $("<i class='endTask fas fa-check' title='Finish task'></i>");
-    
-    //******************//
-    
-    if ($.isArray(toDoItem)) {
-        
-        const text = toDoItem[0];
-        
-        //******************//
-        
-        newTask = $("<div>").addClass("task");
-        
-        //******************//
-        
-        $(newTask).append(
-            text, 
-            $(GLOBAL.endTask),
-            $(GLOBAL.editTask),
-            $(GLOBAL.delTask)
-        );
-        
-    } else {
-        
-        newTask = toDoItem;
-        
-    }// else if ($.isArray(item))
-    
-    //******************//
-    
-    // Add undoTask button
-    $(newTask).append(
-        $(GLOBAL.undoTask).click( (ev) => {
-            undoTaskFunc(ev);
-        })
+// Monta o <li> de uma tarefa. O texto entra com .text(), nunca como HTML.
+function criarItem(tarefa) {
+    const item = $("<li>").addClass("task").attr("data-id", tarefa.id);
+
+    const texto = $("<span>").addClass("texto").text(tarefa.texto);
+
+    const acoes = $("<div>").addClass("acoes").append(
+        tarefa.concluida
+            ? criarBotao("alternar", "fa-undo", "Voltar para pendentes")
+            : criarBotao("alternar", "fa-check", "Concluir tarefa"),
+        criarBotao("editar", "fa-edit", "Editar tarefa"),
+        criarBotao("remover", "fa-trash-alt", "Remover tarefa")
     );
-    
-    //******************//
-    
-    // Find delTask button
-    $(newTask).find(".delTask").click( (ev) => {
-        delTaskFunc(ev);
-    });
-    
-    //******************//
-    
-    // Find editTask button
-    $(newTask).find(".editTask").click( (ev) => {
-        editTaskFunc(ev);
-    });
-    
-    //******************//
-    
-    // Remove endTask button
-    $(newTask).find(".endTask").remove();
-    
-    //******************//
-    
-    // Insert content in completed tasks
-    $(GLOBAL.concluded).append(
-        $(newTask)
-    );
-    
-}// addConcludedTask
 
-//******************//
+    return item.append(texto, acoes);
+}
 
-function addTask (event, item = null) {
-    
-    GLOBAL.editTask  = $("<i class='editTask fas fa-edit' title='Edit task'></i>");
-    GLOBAL.delTask   = $("<i class='delTask fas fa-trash-alt' title='Delete task'></i>");
-    GLOBAL.endTask   = $("<i class='endTask fas fa-check' title='Finish task'></i>");
-    
-    // 13 means enter button
-    if (event && event.which == 13 && $(event.target).val() != "" || item) {
-        
-        let text = null;
-        
-        //******************//
-        
-        // From Local Storage?
-        if (item) {
-            
-            text = item[0];
-            
-        } else {
-            
-            text = $(GLOBAL.txtb).val();
-            
-        }// if (item)
-        
-        //******************//
-        
-        const newTask = $("<div>").addClass("task");
-        
-        //******************//
-        
-        $(GLOBAL.endTask).click( (ev) => {
-            endTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        $(GLOBAL.editTask).click( (ev) => {
-            editTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        $(GLOBAL.delTask).click( (ev) => {
-            delTaskFunc(ev);
-        });
-        
-        //******************//
-        
-        // Create task element
-        $(newTask).append(
-            text, 
-            $(GLOBAL.endTask),
-            $(GLOBAL.editTask),
-            $(GLOBAL.delTask)
+function criarBotao(acao, icone, rotulo) {
+    return $("<button>")
+        .attr({ type: "button", "data-acao": acao, title: rotulo, "aria-label": rotulo })
+        .addClass("btn-acao btn-" + acao)
+        .append($("<i>").addClass("fas " + icone).attr("aria-hidden", "true"));
+}
+
+function mostrarAviso(mensagem) {
+    $("#aviso").text(mensagem);
+}
+
+function buscarTarefa(id) {
+    return tarefas.find((t) => t.id === id);
+}
+
+// ------------------------------------------------------------------
+// localStorage (com try/catch: pode estar bloqueado ou cheio)
+
+function carregarTarefas() {
+    try {
+        const dados = JSON.parse(localStorage.getItem(CHAVE_STORAGE)) || [];
+
+        // Converte o formato antigo ([texto, concluida]) para objetos
+        return dados.map((t, i) =>
+            Array.isArray(t)
+                ? { id: Date.now() + i, texto: String(t[0]), concluida: Boolean(t[1]) }
+                : t
         );
-        
-        //******************//
-        
-        // Add element to Pending tasks
-        $(GLOBAL.pending).append(
-            $(newTask)
-        );
-        
-        //******************//
-        
-        // Add item to Local Storage
-        if (!item) addLS([$(GLOBAL.txtb).val(), false]);
-        
-        //******************//
-      
-        // Clean it up
-        $(GLOBAL.txtb).val("");
-      
-    }// if (event.which == 13 && $(event.target).val() != "" || item)
-    
-}// addTaskFunc
+    } catch (e) {
+        return [];
+    }
+}
 
-//******************//
-
-// Add data to Local Storage
-function addLS(toDoItem) {
-    
-    const toDoItems = getLS();
-    let found       = false;
-    
-    // Look for registers in the list
-    toDoItems.forEach((item) => {
-        if (item[0] == toDoItem[0]) found = true; 
-    });
-    
-    if (!found) localStorage.setItem('toDoItems', JSON.stringify([...toDoItems, toDoItem]));
-    
-}// addLS
-
-//******************//
-
-// Update data in Local Storage
-function updateLS(toDoItem) {
-    
-    removeLS(toDoItem);
-    addLS(toDoItem);
-    
-}// updateLS
-
-//******************//
-
-// Remove data from Local Storage
-function removeLS(toDoItem) {
-    
-    const toDoItems = getLS();
-    
-    localStorage.setItem('toDoItems', JSON.stringify(toDoItems.filter( (id) => id[0] !== toDoItem[0])));
-    
-}// removeLS
-
-//******************//
-
-// Get data from Local Storage
-function getLS() {
-    
-    const toDoItems = JSON.parse(localStorage.getItem('toDoItems'));
-    
-    return toDoItems === null ? [] : toDoItems;
-    
-}// getLS
+function salvarTarefas() {
+    try {
+        localStorage.setItem(CHAVE_STORAGE, JSON.stringify(tarefas));
+    } catch (e) {
+        mostrarAviso("Não foi possível salvar as tarefas neste navegador.");
+    }
+}

@@ -1,55 +1,235 @@
 * {
   margin: 0;
   padding: 0;
-  font-family: "montserrat",sans-serif;
   box-sizing: border-box;
 }
 
 body {
-  background-image: linear-gradient(120deg,#487eb0,#fbc531);
+  font-family: "Montserrat", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-image: linear-gradient(120deg, #487eb0, #fbc531);
+  background-attachment: fixed;
   min-height: 100vh;
+  color: #1e272e;
 }
 
 .container {
-  max-width: 800px;
-  margin: auto;
-  padding: 10px;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+h1 {
+  color: #fff;
+  font-size: 28px;
+  margin-bottom: 20px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 28px 0 10px;
+  font-size: 18px;
+  color: #fff;
+}
+
+/* Texto só para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Formulário */
+
+.form-tarefa {
+  display: flex;
+  gap: 8px;
 }
 
 .txtb {
-  width: 100%;
-  border: none;
-  border-bottom: 2px solid #000;
-  background: none;
-  padding: 10px;
-  outline: none;
-  font-size: 18px;
+  flex: 1;
+  min-width: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 17px;
+  color: inherit;
 }
 
 .txtb::placeholder {
-  color: black;
+  color: #57606f;
 }
 
-h3 {
-  margin: 10px 0;
-  color: #eee;
+.btn-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #1e272e;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-adicionar:hover {
+  background: #2f3542;
+}
+
+.aviso {
+  min-height: 22px;
+  margin-top: 6px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Foco visível para quem usa o teclado */
+.txtb:focus,
+.campo-edicao:focus,
+button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.txtb:focus {
+  border-color: #1e272e;
+}
+
+/* Listas */
+
+.contador {
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  text-align: center;
+}
+
+.tarefas {
+  list-style: none;
 }
 
 .task {
-  width: 100%;
-  background: rgba(255,255,255,0.5);
-  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 10px 10px 10px 16px;
   margin: 6px 0;
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.task i {
-  float: right;
-  margin-left: 20px;
-  cursor: pointer;
+.texto {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
-.comp .task {
-  background: rgba(0,0,0,.5);
+.concluidas .task {
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
+}
+
+.concluidas .texto {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.vazio {
+  padding: 14px 16px;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+}
+
+/* Botões de ação: sempre visíveis (funcionam também no celular) */
+
+.acoes {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-acao {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-acao:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.concluidas .btn-acao:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-alternar:hover {
+  color: #218c74;
+}
+
+.concluidas .btn-alternar:hover {
+  color: #fbc531;
+}
+
+.btn-remover:hover {
+  color: #c0392b;
+}
+
+.concluidas .btn-remover:hover {
+  color: #ff7675;
+}
+
+.campo-edicao {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid #1e272e;
+  border-radius: 6px;
+  font: inherit;
+}
+
+/* Celular */
+@media (max-width: 480px) {
+  .container {
+    padding-top: 20px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .btn-adicionar span {
+    display: none;
+  }
+
+  .btn-adicionar {
+    padding: 0 16px;
+  }
+
+  .btn-acao {
+    width: 36px;
+    height: 36px;
+  }
 }
