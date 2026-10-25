@@ -15,6 +15,7 @@ Lista de tarefas simples criada em 2022 como projeto de estudo de jQuery. A idei
 - Editar o texto direto na lista (Enter salva, Esc cancela)
 - Remover tarefas
 - Contador de pendentes e concluídas, com mensagem quando a lista está vazia
+- Tarefas de exemplo na primeira visita (pendentes e concluídas)
 - Tarefas salvas no localStorage (continuam lá ao recarregar a página)
 - Funciona pelo teclado e no celular (as ações ficam sempre visíveis)
 - O texto digitado é exibido como texto, nunca interpretado como HTML

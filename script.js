@@ -6,6 +6,15 @@ const CHAVE_STORAGE = "toDoItems";
 // Cada tarefa: { id, texto, concluida }
 let tarefas = [];
 
+// Tarefas de exemplo, mostradas só na primeira visita (nada salvo ainda)
+const EXEMPLOS = [
+    { id: 1, texto: "Revisar o README", concluida: false },
+    { id: 2, texto: "Aprender .fadeOut()", concluida: false },
+    { id: 3, texto: "Ler a documentação de eventos do jQuery e testar delegação com .on()", concluida: false },
+    { id: 4, texto: "Configurar o projeto", concluida: true },
+    { id: 5, texto: "Criar o layout com CSS", concluida: true }
+];
+
 $(function () {
     tarefas = carregarTarefas();
     render();
@@ -158,7 +167,12 @@ function buscarTarefa(id) {
 
 function carregarTarefas() {
     try {
-        const dados = JSON.parse(localStorage.getItem(CHAVE_STORAGE)) || [];
+        const salvo = localStorage.getItem(CHAVE_STORAGE);
+
+        // Primeira visita: começa com os exemplos
+        if (salvo === null) return EXEMPLOS.slice();
+
+        const dados = JSON.parse(salvo) || [];
 
         // Converte o formato antigo ([texto, concluida]) para objetos
         return dados.map((t, i) =>
@@ -167,7 +181,7 @@ function carregarTarefas() {
                 : t
         );
     } catch (e) {
-        return [];
+        return EXEMPLOS.slice();
     }
 }
 
